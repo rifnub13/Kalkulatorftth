@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#007bff">
+    <meta name="description" content="Aplikasi Kalkulator Topologi FTTH">
+    
+    <!-- PWA Link -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.png">
+    
+    <title>FTTH Calculator Mobile Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root { --primary: #007bff; --bg: #f0f2f5; --card: #ffffff; --text: #212529; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); padding: 10px; margin: 0; padding-bottom: 80px;}
+        .container { max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px; }
+        .card { background: var(--card); padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        h2, h3 { margin-top: 0; color: var(--primary); font-size: 1.1rem; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        label { display: block; font-size: 0.85rem; margin-top: 12px; font-weight: 600; color: #555; }
+        input, select { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ced4da; border-radius: 8px; font-size: 16px; background: #fff; box-sizing: border-box; -webkit-appearance: none; }
+        .row-input { display: flex; gap: 10px; }
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
+        button { padding: 14px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; color: white; font-size: 1rem; flex: 1; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: center; align-items: center; gap:5px; }
+        .btn-add { background: #28a745; flex: 2; }
+        .btn-reset { background: #dc3545; flex: 1; }
+        .btn-act { background: #6c757d; font-size: 0.8rem; padding: 8px 12px; width: auto; flex: none;}
+        .btn-float { position: fixed; bottom: 20px; right: 20px; background: var(--primary); width: 50px; height: 50px; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.3); font-size: 24px; z-index: 100; display: flex; align-items: center; justify-content: center;}
+        .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #eee; border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 600px; }
+        th { background: #f8f9fa; padding: 12px 8px; text-align: left; border-bottom: 2px solid #dee2e6; color: #495057; white-space: nowrap; }
+        td { padding: 10px 8px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        .tbl-select { padding: 8px; font-size: 0.85rem; border: 1px solid #ddd; background: transparent; width: 100%; }
+        .val-good { color: #28a745; font-weight: 700; background: #e6f9ed; padding: 4px 8px; border-radius: 4px; display: inline-block; }
+        .val-warn { color: #fd7e14; font-weight: 700; background: #fff4e6; padding: 4px 8px; border-radius: 4px; display: inline-block;}
+        .val-bad { color: #dc3545; font-weight: 700; background: #fce8e8; padding: 4px 8px; border-radius: 4px; display: inline-block;}
+        .bom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .bom-item { background: #e9ecef; padding: 10px; border-radius: 8px; text-align: center; }
+        .bom-val { display: block; font-size: 1.2rem; font-weight: bold; color: var(--primary); }
+        .bom-lbl { font-size: 0.75rem; color: #666; }
+        .tree-container { overflow-x: auto; padding: 10px; text-align: center; white-space: nowrap; }
+        .tree ul { padding-top: 20px; position: relative; display: flex; justify-content: center; }
+        .tree li { float: left; text-align: center; list-style-type: none; position: relative; padding: 20px 5px 0 5px; }
+        .tree li::before, .tree li::after { content: ''; position: absolute; top: 0; right: 50%; border-top: 1px solid #ccc; width: 50%; height: 20px; }
+        .tree li::after { right: auto; left: 50%; border-left: 1px solid #ccc; }
+        .tree li:only-child::after, .tree li:only-child::before { display: none; }
+        .tree li:only-child { padding-top: 0; }
+        .tree li:first-child::before, .tree li:last-child::after { border: 0 none; }
+        .tree li:last-child::before { border-right: 1px solid #ccc; border-radius: 0 5px 0 0; }
+        .tree li:first-child::after { border-radius: 5px 0 0 0; }
+        .tree ul ul::before { content: ''; position: absolute; top: 0; left: 50%; border-left: 1px solid #ccc; width: 0; height: 20px; }
+        .node { border: 1px solid #ccc; padding: 8px; border-radius: 6px; display: inline-block; min-width: 80px; background: white; font-size: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .node.olt { border-color: #007bff; background: #e7f1ff; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <h2>⚙️ Setting OLT</h2>
+        <div class="row-input">
+            <div style="flex:1">
+                <label>SFP Power</label>
+                <select id="sfpSelect" onchange="setSFP()">
+                    <option value="5">Class B+ (5 dBm)</option>
+                    <option value="7" selected>Class C+ (7 dBm)</option>
+                    <option value="9">Class C++ (9 dBm)</option>
+                    <option value="custom">Manual..</option>
+                </select>
+                <input type="number" id="inputSFP" value="7" step="0.1" onchange="calc()" style="display:none; margin-top:5px;">
+            </div>
+            <div style="flex:1">
+                <label>Loss/Km (dB)</label>
+                <input type="number" id="lossKm" value="0.35" step="0.01" onchange="calc()">
+            </div>
+        </div>
+        <label>Redaman Konektor/Splicing per Hop</label>
+        <input type="number" id="lossConn" value="0.25" step="0.05" onchange="calc()">
+    </div>
+
+    <div class="card" id="formArea">
+        <h2>➕ Tambah ODP</h2>
+        <label>Sambung ke (Induk)</label>
+        <select id="parentSelect"><option value="0">OLT (Pusat)</option></select>
+        <div class="row-input">
+            <div style="flex:2">
+                <label>Nama ODP</label>
+                <input type="text" id="nodeName" placeholder="Contoh: ODP 1">
+            </div>
+            <div style="flex:1">
+                <label>Jarak (m)</label>
+                <input type="number" id="nodeDist" value="100">
+            </div>
+        </div>
+        <label>Rasio Splitter (Opsional)</label>
+        <select id="ratioSelect">
+            <option value="none">⛔ Direct / Tanpa Ratio</option>
+        </select>
+        <label>Jenis ODP / Splitter Distribusi</label>
+        <select id="distSelect">
+            <option value="1:8" selected>ODP 1:8 (Standar)</option>
+            <option value="1:16">ODP 1:16 (Padat)</option>
+            <option value="1:4">ODP 1:4 (Kecil)</option>
+            <option value="1:2">ODP 1:2 / FDT</option>
+            <option value="1:32">ODP 1:32</option>
+            <option value="none">Hanya Sambungan (JB)</option>
+        </select>
+        <div class="btn-group">
+            <button class="btn-add" onclick="addNode()">+ Simpan</button>
+            <button class="btn-reset" onclick="resetAll()">Reset</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>📦 Material (BOM)</h2>
+        <div id="bomArea" class="bom-grid"></div>
+    </div>
+
+    <div class="card">
+        <h2>📊 Hasil Hitungan <button class="btn-act" onclick="dlImg('tableArea', 'Tabel_FTTH.png')">📷 Foto</button></h2>
+        <div class="table-wrapper" id="tableArea">
+            <table id="resTable">
+                <thead><tr><th>ID</th><th>Induk</th><th>Jarak</th><th>Rasio</th><th>ODP</th><th>Input</th><th>Next</th><th>ONT</th><th class="no-print">Aksi</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>🌐 Topologi <button class="btn-act" onclick="dlImg('treeArea', 'Topologi_FTTH.png')">📷 Foto</button></h2>
+        <div class="tree-container" id="treeArea">
+            <div class="tree" id="treeRoot"></div>
+        </div>
+    </div>
+</div>
+
+<a href="#formArea" class="btn-float" style="color:white; text-decoration:none;">+</a>
+
+<script>
+    // PWA Service Worker Register
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('SW Registered!', reg.scope))
+                .catch(err => console.log('SW Fail', err));
+        });
+    }
+
+    // --- APP LOGIC ---
+    let ratioLoss = { "none": {tap:0, through:0} };
+    function initRatios() {
+        const select = document.getElementById('ratioSelect');
+        const optGroup = document.createElement('optgroup');
+        optGroup.label = "Pilih Rasio (1-50)";
+        for(let i=1; i<=50; i++) {
+            let tapP = i; let thruP = 100 - i; let name = `${tapP}:${thruP}`;
+            let tapL = (-10 * Math.log10(tapP/100)) + 0.8;
+            let thruL = (-10 * Math.log10(thruP/100)) + 0.8;
+            ratioLoss[name] = { tap: tapL, through: thruL };
+            let opt = document.createElement('option');
+            opt.value = name; opt.text = `${name} (Tap: ${tapL.toFixed(1)}dB)`;
+            if(name === "5:95") opt.selected = true;
+            optGroup.appendChild(opt);
+        }
+        select.appendChild(optGroup);
+    }
+
+    const distLoss = { "1:2": 4.0, "1:4": 7.3, "1:8": 10.5, "1:16": 13.9, "1:32": 17.5, "none": 0 };
+    let nodes = [{ id: 0, name: "OLT", parent: null, ratio: null, distType: null, distance: 0, inputPower: 7, outputNext: 7, outputOnt: null }];
+    let idCounter = 1;
+
+    if(localStorage.getItem('ftth_mobile_v1')) {
+        try { let data = JSON.parse(localStorage.getItem('ftth_mobile_v1')); nodes = data.nodes; idCounter = data.cnt; } catch(e) {}
+    }
+
+    function setSFP() {
+        let v = document.getElementById('sfpSelect').value;
+        let inp = document.getElementById('inputSFP');
+        if(v==='custom') inp.style.display='block';
+        else { inp.style.display='none'; inp.value=v; }
+        calc();
+    }
+
+    function addNode() {
+        let pid = parseInt(document.getElementById('parentSelect').value);
+        let name = document.getElementById('nodeName').value || ("ODP " + idCounter);
+        let dist = parseInt(document.getElementById('nodeDist').value) || 0;
+        let ratio = document.getElementById('ratioSelect').value;
+        let type = document.getElementById('distSelect').value;
+        let parent = nodes.find(n=>n.id===pid);
+        if(parent.outputNext <= -35) { alert("Sinyal Induk sudah habis (Loss)!"); return; }
+        nodes.push({id: idCounter++, name, parent: pid, distance: dist, ratio, distType: type, inputPower:0, outputNext:0, outputOnt:0});
+        document.getElementById('nodeName').value = "";
+        calc();
+        document.getElementById('resTable').scrollIntoView({behavior: 'smooth'});
+    }
+
+    function updateNode(id, field, val) {
+        let n = nodes.find(x=>x.id===id);
+        if(n) { if(field==='parent' || field==='distance') val = parseInt(val); n[field] = val; calc(); }
+    }
+
+    function delNode(id) {
+        if(!confirm("Hapus?")) return;
+        let ids = [id];
+        for(let i=0; i<nodes.length; i++) nodes.forEach(n => { if(ids.includes(n.parent) && !ids.includes(n.id)) ids.push(n.id); });
+        nodes = nodes.filter(n => !ids.includes(n.id)); calc();
+    }
+
+    function calc() {
+        let sfp = parseFloat(document.getElementById('inputSFP').value);
+        let lKm = parseFloat(document.getElementById('lossKm').value);
+        let lConn = parseFloat(document.getElementById('lossConn').value);
+        nodes[0].inputPower = sfp; nodes[0].outputNext = sfp;
+        nodes.forEach(n=>{ if(n.id!==0) { n.inputPower=-99; n.outputNext=-99; n.outputOnt=null; } });
+
+        for(let k=0; k<15; k++) {
+            nodes.forEach(n => {
+                if(n.id===0) return;
+                let p = nodes.find(x=>x.id===n.parent);
+                if(p && p.outputNext > -50) {
+                    let cLoss = (n.distance/1000) * lKm;
+                    n.inputPower = p.outputNext - cLoss - lConn;
+                    let dL = distLoss[n.distType];
+                    if(n.ratio === 'none') {
+                        if(n.distType !== 'none') { n.outputOnt = n.inputPower - dL - lConn; n.outputNext = n.inputPower - dL - lConn; } 
+                        else { n.outputOnt = null; n.outputNext = n.inputPower - lConn; }
+                    } else {
+                        let r = ratioLoss[n.ratio]; if(!r) r = {tap:0, through:0};
+                        if(n.distType !== 'none') n.outputOnt = n.inputPower - r.tap - dL - lConn; else n.outputOnt = null;
+                        n.outputNext = n.inputPower - r.through;
+                    }
+                }
+            });
+        }
+        save(); render();
+    }
+
+    function save() { localStorage.setItem('ftth_mobile_v1', JSON.stringify({nodes, cnt: idCounter})); }
+    function resetAll() { if(confirm("Hapus Semua?")) { localStorage.removeItem('ftth_mobile_v1'); location.reload(); } }
+
+    function render() {
+        let sel = document.getElementById('parentSelect'); let cur = sel.value;
+        sel.innerHTML = '<option value="0">OLT (Pusat)</option>';
+        nodes.forEach(n => { if(n.id!==0 && n.outputNext > -40) sel.innerHTML += `<option value="${n.id}">${n.name} (${n.outputNext.toFixed(1)}dBm)</option>`; });
+        sel.value = cur;
+        let tbody = document.querySelector('#resTable tbody'); tbody.innerHTML = '';
+        nodes.forEach(n => {
+            if(n.id===0) return;
+            let pOpts = `<option value="0">OLT</option>` + nodes.map(x=>(x.id!==n.id && x.id!==0)?`<option value="${x.id}" ${x.id===n.parent?'selected':''}>${x.name}</option>`:'').join('');
+            let dOpts = Object.keys(distLoss).map(k=>`<option value="${k}" ${k===n.distType?'selected':''}>${k}</option>`).join('');
+            let ontVal = n.outputOnt !== null ? n.outputOnt.toFixed(2) : '-';
+            let ontCls = n.outputOnt!==null?(n.outputOnt<-24?'val-bad':(n.outputOnt<-21?'val-warn':'val-good')):'';
+            let nxtVal = n.outputNext > -50 ? n.outputNext.toFixed(2) : 'End';
+            let row = `<tr><td>${n.id}</td><td><select class="tbl-select" onchange="updateNode(${n.id},'parent',this.value)">${pOpts}</select></td>
+                <td><input type="number" style="width:50px; padding:4px;" value="${n.distance}" onchange="updateNode(${n.id},'distance',this.value)"></td>
+                <td>${n.ratio === 'none' ? 'Direct' : n.ratio}</td><td><select class="tbl-select" onchange="updateNode(${n.id},'distType',this.value)">${dOpts}</select></td>
+                <td>${n.inputPower.toFixed(2)}</td><td>${nxtVal}</td><td><span class="${ontCls}">${ontVal}</span></td>
+                <td class="no-print"><button class="btn-reset" style="padding:5px; width:auto;" onclick="delNode(${n.id})">X</button></td></tr>`;
+            tbody.innerHTML += row;
+        });
+        let counts = {}; let cab = 0;
+        nodes.forEach(n=>{ if(n.id===0) return; if(n.distType!=='none') counts[`ODP ${n.distType}`]=(counts[`ODP ${n.distType}`]||0)+1; else counts[`Closure`]=(counts[`Closure`]||0)+1; if(n.ratio!=='none') counts[`Splitter ${n.ratio}`]=(counts[`Splitter ${n.ratio}`]||0)+1; cab+=n.distance; });
+        let bom = document.getElementById('bomArea'); bom.innerHTML = `<div class="bom-item"><span class="bom-val">${(cab/1000).toFixed(2)}km</span><span class="bom-lbl">Kabel</span></div>`;
+        for(let k in counts) bom.innerHTML += `<div class="bom-item"><span class="bom-val">${counts[k]}</span><span class="bom-lbl">${k}</span></div>`;
+        document.getElementById('treeRoot').innerHTML = buildTree(0);
+    }
+
+    function buildTree(pid) {
+        let n = nodes.find(x=>x.id===pid); let kids = nodes.filter(x=>x.parent===pid);
+        let html = `<li>`;
+        if(pid===0) html += `<div class="node olt"><b>OLT</b><br>${n.inputPower}dBm</div>`;
+        else { let info = n.outputOnt!==null ? `ONT:${n.outputOnt.toFixed(2)}` : 'Link'; html += `<div class="node"><b>${n.name}</b><br><span style="color:#888">${n.distType}</span><br>${info}</div>`; }
+        if(kids.length) html += `<ul>${kids.map(k=>buildTree(k.id)).join('')}</ul>`; html += `</li>`; return html;
+    }
+    function dlImg(id, name) { document.querySelectorAll('.no-print').forEach(e=>e.style.display='none'); html2canvas(document.getElementById(id)).then(c=>{ let a = document.createElement('a'); a.download=name; a.href=c.toDataURL(); a.click(); document.querySelectorAll('.no-print').forEach(e=>e.style.display=''); }); }
+    
+    initRatios(); setTimeout(setSFP, 100);
+</script>
+</body>
+</html>
